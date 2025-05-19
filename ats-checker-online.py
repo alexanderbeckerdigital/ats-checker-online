@@ -22,12 +22,10 @@ def detect_ats_url(url):
 
 def deep_scan(url):
     try:
+        print(f"Starte Scan für: {url}")
         resp = requests.get(url, timeout=10)
         html = resp.text
         soup = BeautifulSoup(html, "html.parser")
-        found_ats = None
-
-        # Suche in Skript-Tags und allen Links
         scripts_and_links = []
         for tag in soup.find_all(["script", "link"]):
             if tag.has_attr('src'):
@@ -38,7 +36,6 @@ def deep_scan(url):
                 scripts_and_links.append(tag.string)
         scripts_and_links = [s for s in scripts_and_links if s]
 
-        # Suche auch in Meta-Tags
         metas = []
         for tag in soup.find_all("meta"):
             if tag.has_attr('content'):
@@ -51,9 +48,12 @@ def deep_scan(url):
             for pattern in patterns:
                 for c in candidates:
                     if c and pattern in c:
+                        print(f"Fertig: {url} → {ats}")
                         return ats
+        print(f"Fertig: {url} → Unbekannt")
         return "Unbekannt"
     except Exception as e:
+        print(f"Fehler bei {url}: {e}")
         return f"Fehler: {e}"
 
 @app.route('/', methods=['GET', 'POST'])
@@ -96,7 +96,7 @@ def index():
     </head>
     <body>
         <h2>ATS-Checker – Deep-Scan (URLs werden live analysiert)</h2>
-        <form method="post">
+        <form method="post" id="atsform" onsubmit="showSpinner()">
             <div class="container">
                 <div>
                     <b>URL-Eingabe (jede Zeile eine URL):</b><br>
@@ -122,6 +122,14 @@ def index():
                 </div>
             </div>
         </form>
+        <div id="spinner" style="display:none; font-size:1.3em; color:#1a73e8;">
+            <b>🔄 Scan läuft... Bitte warten...</b>
+        </div>
+        <script>
+        function showSpinner() {
+            document.getElementById('spinner').style.display = 'block';
+        }
+        </script>
     </body>
     </html>
     """, urls=urls, grouped=grouped, deep_scan_mode=deep_scan_mode)
